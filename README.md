@@ -48,17 +48,17 @@ python model.py
 
 **Train with custom dataset:**
 ```bash
-python your_script.py --data_path './data/custom_mrcs_dataset'
+python model.py --data_path './data/custom_mrcs_dataset'
 ```
 
 **Full customization:**
 ```bash
-python your_script.py --data_path ./data/custom_mrcs_dataset --epochs 50 --learning_rate_theta 0.03 --learning_rate_sigma 0.0007 --pre_epochs 11 
+python model.py --data_path './data/custom_mrcs_dataset' --epochs 50 --learning_rate_theta 0.03 --learning_rate_sigma 0.0007 --pre_epochs 11 
 ```
 
 **Get help information:**
 ```bash
-python your_script.py --help
+python model.py --help
 ```
 
 ### Notes
