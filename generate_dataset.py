@@ -22,8 +22,7 @@ class RotatedImageDataset(Dataset):
         """
         Args:
             original_image (PIL.Image or str): The original image or path to the image
-            rotation_function (callable): Function that takes an image and returns n rotated versions
-            n_rotations (int): Number of rotated images to generate
+            num_samples (int): Number of rotated images to generate
             transform (callable, optional): Additional transformations to apply to the rotated images
         """
         self.transform = transform
@@ -126,9 +125,6 @@ def batch_affine_transform_dataset(image, batch_size, device="cuda:0" if torch.c
     theta[:, 0, 2] = (translations_x).squeeze(1)
     theta[:, 1, 2] = (translations_y).squeeze(1)
 
-    # Define the output size (same as input)
-    out_size = (H, W)
-
     # Apply the grid_sample-based affine transformation to all images at once
     grid = F.affine_grid(theta, batched_images.size(), align_corners=False)
     transformed_images = F.grid_sample(batched_images, grid, align_corners=False)
@@ -145,9 +141,8 @@ if __name__ == '__main__':
         plt.savefig(f'output_plot_{i}.png')
         print(f'Plot saved to output_plot_{i}.png')
 
-
     # Load your image (assuming you have it as 'path_to_your_image.jpg')
-    image_path = 'Socrates.png'
+    image_path = 'Trump.png'
     image = Image.open(image_path).convert('L')
     to_tensor = transforms.ToTensor()
     center_crop = transforms.CenterCrop(256)
@@ -159,30 +154,11 @@ if __name__ == '__main__':
     plt.imshow(im, interpolation='nearest')
     plt.axis('off')
     plt.title('Ground Truth')
-    plt.savefig(f'ground_truth_duck_croped.png')
-    print(f'Plot saved to ground_truth_duck_croped.png')
+    plt.savefig(f'ground_truth.png')
+    print(f'Plot saved to ground_truth.png')
 
     # Create dataset
     dataset = RotatedImageDataset(image)
-
-    output_dir = 'MRCS_files'
-    os.makedirs(output_dir, exist_ok=True)
-
-    # for idx, data in enumerate(dataset):
-    #     # Extract tensor (assuming data is (tensor,) or directly a tensor)
-    #     tensor = data[0] if isinstance(data, (tuple, list)) else data
-    #
-    #     # Convert to numpy array (ensure float32)
-    #     np_data = tensor.cpu().numpy().astype('float32')
-    #
-    #     # Define file path
-    #     file_path = os.path.join(output_dir, f'image_{idx}.mrcs')
-    #
-    #     # Save as MRCS
-    #     with mrcfile.new(file_path, overwrite=True) as mrc:
-    #         mrc.set_data(np_data)
-    #
-    #     print(f"Saved: {file_path}")
 
     # Create a DataLoader
     dataloader = DataLoader(dataset, batch_size=20, shuffle=True)
