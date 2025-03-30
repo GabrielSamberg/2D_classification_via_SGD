@@ -20,16 +20,17 @@ device = "cuda:0" if torch.cuda.is_available() else "cpu"
 
 
 class Model2(nn.Module):
-    def __init__(self, update_samples=None):
+    def __init__(self, update_samples=None, len_dataset=100):
         super(Model2, self).__init__()
         N_x, N_y, N_z, N_w = 25, 7, 6, 5
         self.theta = nn.Parameter(torch.zeros(1, 256, 256))
         self.sigma = nn.Parameter(torch.ones(1))
+        self.len_dataset = len_dataset
 
         self.update_samples = update_samples
         self.num_batch = 0
         self.num_epoch = 0
-        self.grid = torch.zeros(20, 5, N_x, N_y, N_z, N_w)  # (num_batches, batch, N_x, N_y, N_z, N_w)
+        self.grid = torch.zeros(self.len_dataset//5, 5, N_x, N_y, N_z, N_w)  # (num_batches, batch, N_x, N_y, N_z, N_w)
 
         x_vals = torch.linspace(0, 2 * math.pi, steps=N_x, device=device)
         y_vals = torch.linspace(-0.09, 0.09, steps=N_y, device=device)
@@ -106,11 +107,13 @@ def train(epochs, lr_theta, lr_sigma, train_pre_model=False, pre_epochs=0, mrcs_
 
     # pre model
     pre_model = Model().to(device)
+    pre_model.len_dataset = len(dataset)
     pre_optimizer = optim.SGD(pre_model.parameters(), lr=0.01, momentum=0.8, nesterov=True)
     pre_scheduler = StepLR(pre_optimizer, step_size=4, gamma=0.1)
 
     # model
     model2 = Model2().to(device)
+    model2.len_dataset = len(dataset)
 
     if train_pre_model:
         # Training the pre model

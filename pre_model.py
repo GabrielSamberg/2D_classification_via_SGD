@@ -10,14 +10,15 @@ device = "cuda:0" if torch.cuda.is_available() else "cpu"
 
 
 class Model(nn.Module):
-    def __init__(self, update_samples=None):
+    def __init__(self, update_samples=None, len_dataset=100):
         super(Model, self).__init__()
         N_x, N_y, N_z, N_w = 25, 7, 6, 5
         self.theta = nn.Parameter(torch.zeros(1, 256, 256))
         self.update_samples = update_samples
         self.num_batch = 0
         self.num_epoch = 0
-        self.grid = torch.zeros(20, 5, N_x, N_y, N_z, N_w)
+        self.len_dataset = len_dataset
+        self.grid = torch.zeros(self.len_dataset//5, 5, N_x, N_y, N_z, N_w)
 
         x_vals = torch.linspace(0, 2 * math.pi, steps=N_x, device=device)
         y_vals = torch.linspace(-0.09, 0.09, steps=N_y, device=device)
