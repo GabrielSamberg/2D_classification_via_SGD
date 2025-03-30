@@ -11,9 +11,9 @@ python model.py [--data_path DATA_PATH] [--epochs EPOCHS] [--learning_rate_theta
 
 ### Parameters
 
-- `--data_path`: Path string to your .mrcs format dataset
+- `--data_path`: Path to your .mrcs format dataset
   - Optional: If not provided, the script will generate our defaul dataset
-  - Example: `--data_path './data/my_dataset.mrc'`
+  - Example: `--data_path ./data/my_dataset.mrc`
 
 - `--epochs`: Number of training epochs for the main model
   - Optional: Defaults to 10 if not specified
@@ -48,12 +48,12 @@ python model.py
 
 **Train with custom dataset:**
 ```bash
-python model.py --data_path './data/custom_mrcs_dataset'
+python model.py --data_path ./data/custom_mrcs_dataset
 ```
 
 **Full customization:**
 ```bash
-python model.py --data_path './data/custom_mrcs_dataset' --epochs 50 --learning_rate_theta 0.03 --learning_rate_sigma 0.0007 --pre_epochs 11 
+python model.py --data_path ./data/custom_mrcs_dataset --epochs 50 --learning_rate_theta 0.03 --learning_rate_sigma 0.0007 --pre_epochs 11 
 ```
 
 **Get help information:**
