@@ -65,3 +65,4 @@ python model.py --help
 
 - All parameters are optional and have sensible defaults
 - When providing a dataset, ensure it is stored in a file in which all the datasamples are in the .mrcs format
+- Note that at the moment the code supports only datasets of exactly 100 data samples where each data sample is a 256x256 image
