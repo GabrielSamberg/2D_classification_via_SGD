@@ -1,13 +1,11 @@
 import torch
 from torch.utils.data import Dataset, DataLoader
 from torch import nn, optim
-import torch.nn.functional as F
 from PIL import Image
 import matplotlib
 import matplotlib.pyplot as plt
-from torchvision import transforms
-from torch.optim.lr_scheduler import StepLR, MultiStepLR, ExponentialLR
-from duck_dataset_playground import RotatedImageDataset
+from torch.optim.lr_scheduler import StepLR
+from generate_dataset import RotatedImageDataset
 from integration import trap_int, sample_update
 import math
 from pre_model import Model
@@ -50,11 +48,11 @@ class Model2(nn.Module):
         grid_lst = []
         for i in range(n):
             if self.update_samples is not None:
-                f_grid = self.update_samples[j][i]
-                prev_samples = self.prev_samples[5 * j + i]
-                update = sample_update(prev_samples, f_grid, epoch_num=k)
+                f_grid = self.update_samples[j][i]  # The values on the sample grid from previous iteration for this image
+                prev_samples = self.prev_samples[5 * j + i]  # Take previous sample points
+                update = sample_update(prev_samples, f_grid, epoch_num=k)  # calculate new sampling points
                 self.prev_samples[5 * j + i] = [update[0], update[1], update[2], update[3]]
-                loss_1, f_grid = trap_int(x[i], A, exp=True, update=update)
+                loss_1, f_grid = trap_int(x[i], A, exp=True, update=update)  # calculate the integral and values on the grid
                 grid_lst.append(f_grid)
                 loss += loss_1
             else:
@@ -70,7 +68,7 @@ class Model2(nn.Module):
 class MRCSDataSet(Dataset):
     def __init__(self, directory):
         self.directory = directory
-        self.files = [f for f in os.listdir(directory) if f.endswith('.mrcs')]
+        self.files = [f for f in os.listdir(directory) if f.endswith('.mrcs') or f.endswith('.mrc')]
 
     def __len__(self):
         return len(self.files)
@@ -82,15 +80,15 @@ class MRCSDataSet(Dataset):
             # Convert data to a numpy array
             data = np.array(mrc.data, dtype=np.float32)
 
-            # You might need to normalize or preprocess data differently depending on your task
+            # You might need to normalize
             data = (data - np.mean(data)) / np.std(data)
-
-            # Assuming data is already in a shape compatible with your network, otherwise reshape
-            # For example, if you have single-channel 2D data for CNN:
+            data = torch.tensor(data)
+            # Assuming data is already in a shape compatible with the model
+            assert data.numel() == 256**2, 'The data should be of the shape 256x256'
             data = data.reshape(1, 256, 256)
 
         # Return as tensor
-        return torch.tensor(data)
+        return data
 
 
 def train(epochs, lr_theta, lr_sigma, train_pre_model=False, pre_epochs=0, mrcs_directory=None, generate_dataset=False):
@@ -218,8 +216,7 @@ def train(epochs, lr_theta, lr_sigma, train_pre_model=False, pre_epochs=0, mrcs_
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(description='Model training with MRC dataset')
-
+    parser = argparse.ArgumentParser(description='Model training with MRCS dataset')
 
     parser.add_argument('--data_path', type=str, default=None,
                         help='Path to the .mrc format dataset')
@@ -231,7 +228,7 @@ def parse_args():
     parser.add_argument('--learning_rate_sigma', type=float, default=0.001,
                         help='Learning rate for optimizer (default: 0.001)')
     parser.add_argument('--train_pre_model', type=bool, default=True,
-                        help = 'Run pre-model optimization for better initialization of the model')
+                        help='Run pre-model optimization for better initialization of the model')
     parser.add_argument('--pre_epochs', type=int, default=7,
                         help='Number of epochs for the pretraining proccess')
     parser.add_argument('--generate_dataset', type=bool, default=False,
@@ -244,7 +241,7 @@ def main():
     # Parse command line arguments
     args = parse_args()
     if args.data_path is None:
-        print("No data path provided. Generating our dataset instead")
+        print("No data path provided, Generating our dataset instead.")
         args.generate_dataset = True
 
     else:
@@ -252,10 +249,9 @@ def main():
         if not os.path.exists(args.data_path):
             raise FileNotFoundError(f"Data path not found: {args.data_path}")
 
-
     # Print training configuration
     print("Training configuration:")
-    print(f"  Dataset: {args.data_path}")
+    print(f"  Dataset path: {args.data_path}")
     print(f"  Epochs: {args.epochs}")
     print(f"  Learning rate theta: {args.learning_rate_theta}")
     print(f"  Learning rate sigma: {args.learning_rate_sigma}")
