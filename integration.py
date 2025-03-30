@@ -4,14 +4,16 @@ import torch.nn.functional as F
 
 device = "cuda:0" if torch.cuda.is_available() else "cpu"
 
+
 def rotated_input(X, update=None):
     # Choose number of grid points along each dimension
     N_x, N_y, N_z, N_w = 25, 7, 6, 5  # for example
 
+    # Discretize each domain
     if update is not None:
         x_vals, y_vals, z_vals, w_vals = update
 
-    # Discretize each domain
+
     else:
         x_vals = torch.linspace(0, 2*math.pi, steps=N_x, device=device)
         y_vals = torch.linspace(-0.09, 0.09, steps=N_y, device=device)
@@ -28,16 +30,17 @@ def rotated_input(X, update=None):
     Z_flat = Z_grid.reshape(-1)
     W_flat = W_grid.reshape(-1)
 
-    # Prepare the fixed original image (e.g., 1xC x H x W tensor)
+    # Prepare the original image (e.g., 1 x 256 x 256 tensor)
     original_img = X.to(device)
 
+    # Set rotations and scales
     theta = torch.zeros(param_count, 2, 3, device=device)
-    cosx = torch.cos(X_flat); sinx = torch.sin(X_flat) # Notice that we take -theta angle
-    theta[:, 0, 0] = W_flat*cosx   # scale * cosθ | Notice that scaling is taken as 1/c
-    theta[:, 0, 1] = -W_flat*sinx  # scale * -sinθ
-    theta[:, 1, 0] = W_flat*sinx   # scale * sinθ
-    theta[:, 1, 1] = W_flat*cosx   # scale * cosθ
-    # Set translations (convert from absolute to normalized coords if needed)
+    cosx = torch.cos(X_flat); sinx = torch.sin(X_flat)
+    theta[:, 0, 0] = W_flat*cosx
+    theta[:, 0, 1] = -W_flat*sinx
+    theta[:, 1, 0] = W_flat*sinx
+    theta[:, 1, 1] = W_flat*cosx
+    # Set translations
     theta[:, 0, 2] = Y_flat
     theta[:, 1, 2] = Z_flat
 
@@ -49,6 +52,7 @@ def rotated_input(X, update=None):
     return transformed_imgs
 
 def sample_update(previous_vals, F_vals, epoch_num):
+    # Here ended up only updating the rotations, but can be changed to total update of all parameters.
     N_x, N_y, N_z, N_w = 25, 7, 6, 5
     prev_x_vals, prev_y_vals, prev_z_vals, prev_w_vals = previous_vals
     epsilon_x = 20/360 + (3/4)**epoch_num
@@ -109,7 +113,6 @@ def trap_int(X, A, sigma=None, exp=False, update=None):
     else:
         F_vals = -torch.norm(diff, p='fro', dim=(1, 2)) ** 2 / (2*sigma**2)
 
-
     # Reshape F values back to 4D grid shape [N_x, N_y, N_z, N_w]
     F_grid = F_vals.view(N_x, N_y, N_z, N_w)
 
@@ -119,15 +122,15 @@ def trap_int(X, A, sigma=None, exp=False, update=None):
     w_z = torch.ones(N_z, device=device); w_z[0] = w_z[-1] = 0.5
     w_w = torch.ones(N_w, device=device); w_w[0] = w_w[-1] = 0.5
 
-
     # Broadcast weights and PDFs to the shape of F_grid
     trapezoid_weights = (w_x.view(N_x, 1, 1, 1) * w_y.view(1, N_y, 1, 1) *
                          w_z.view(1, 1, N_z, 1) * w_w.view(1, 1, 1, N_w))
     if exp:
+        # Transforming the desired function into a form that will allow us to pass into log_sum_exp
         dx = (2 * math.pi) / N_x  # step size in x
         dy = 0.18 / N_y  # step size in y
         dz = 0.18 / N_z  # step size in z
-        dw = 0.2 / N_w
+        dw = 0.2 / N_w  # step size in w
         average = torch.ones_like(trapezoid_weights)*dx*dy*dz*dw
         pdf_values = (torch.log(P_x.view(N_x, 1, 1, 1)) + torch.log(P_y.view(1, N_y, 1, 1)) +
                       torch.log(P_z.view(1, 1, N_z, 1)) + torch.log((P_w.view(1, 1, 1, N_w)))
@@ -136,14 +139,14 @@ def trap_int(X, A, sigma=None, exp=False, update=None):
         integral_estimate = torch.logsumexp(integrand_grid, dim=(0, 1, 2, 3))
         return integral_estimate, F_grid
 
+    # Here we are computing the integral for the pre-model
     pdf_values = P_x.view(N_x, 1, 1, 1) * P_y.view(1, N_y, 1, 1) \
-                 * P_z.view(1, 1, N_z, 1) * P_w.view(1, 1, 1, N_w)
+                                        * P_z.view(1, 1, N_z, 1) * P_w.view(1, 1, 1, N_w)
 
     # Compute the integrand values on the grid (F * PDFs)
     integrand_grid = F_grid * pdf_values
 
     # Sum up all contributions with trapezoidal weighting
-
     sum_val = torch.sum(integrand_grid * trapezoid_weights)
 
     # Multiply by the volume of one hyper-rectangular cell (dx * dy * dz * dw)
