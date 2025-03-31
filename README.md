@@ -66,3 +66,4 @@ python model.py --help
 - All parameters are optional and have sensible defaults
 - When providing a dataset, ensure it is stored in a file in which all the datasamples are in the .mrcs format
 - Note that at the moment the code supports only dataset size of multiples of 5, where each data sample is a 256x256 image
+- The code should  be ran on a GPU, the default device is set to cuda:0. If not available, the code will run on a CPU. 
