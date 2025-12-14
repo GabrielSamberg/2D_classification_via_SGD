@@ -1,3 +1,9 @@
+## Project overview
+In this project, I tackle a two-dimensional classification problem using stochastic gradient descent (SGD).
+This repository contains the source code along with [a detailed PDF](./2D_classification_via_SGD.pdf) explaining the problem setup, the mathematical approach, and implementation details.
+See the sections below for a walkthrough of the command-line usage.
+
+
 ## Command Line Usage
 
 This project provides a flexible command line interface through `model.py` that allows you to customize various training parameters.
